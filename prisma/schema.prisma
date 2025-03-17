@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+    previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+    extensions = [vector]
+}
+
+model User {
+    id            String          @id @default(cuid())
+    firstName     String?
+    lastName      String?
+    imageUrl      String?
+    createdAt     DateTime        @default(now())
+    updatedAt     DateTime        @updatedAt
+    email         String          @unique
+    credits       Int             @default(150)
+    UserToProject UserToProject[]
+}
+
+model Project {
+    id        String    @id @default(cuid())
+    name      String
+    githubUrl String
+    createdAt DateTime  @default(now())
+    updatedAt DateTime  @updatedAt
+    deletedAt DateTime?
+
+    UserToProject       UserToProject[]
+    Commit              Commit[]
+    SourceCodeEmbedding SourceCodeEmbedding[]
+}
+
+model UserToProject {
+    id        String   @id @default(cuid())
+    user      User     @relation(fields: [userId], references: [id])
+    userId    String
+    project   Project  @relation(fields: [projectId], references: [id])
+    projectId String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@unique([userId, projectId])
+}
+
+model Commit {
+    id                 String   @id @default(cuid())
+    commitHash         String
+    commitMessage      String
+    commitAuthorName   String
+    CommitAuthorAvatar String
+    createdAt          DateTime @default(now())
+    updatedAt          DateTime @updatedAt
+    commitDate         DateTime
+    project            Project  @relation(fields: [projectId], references: [id])
+    projectId          String
+    summary            String
+}
+
+model SourceCodeEmbedding {
+    id               String                     @id @default(cuid())
+    sourceCode       String
+    summaryEmbedding Unsupported("vector(768)")?
+    fileName         String
+    summary          String
+    project          Project                    @relation(fields: [projectId], references: [id])
+    projectId        String
+}
