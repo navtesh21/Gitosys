@@ -9,7 +9,7 @@ const bodyParser = z.object({
   meetingUrl: z.string(),
 });
 
-export const maxDuration = 300 //5 minutes
+export const maxDuration = 60 //1 minutes
 
 export const POST = async (params: NextRequest) => {
   const body = await params.json();
