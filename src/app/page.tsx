@@ -1,9 +1,12 @@
-import React from 'react'
+"use client";
+import { redirect } from "next/navigation";
+import React, { useEffect } from "react";
 
 function page() {
-  return (
-    <div>page</div>
-  )
+  useEffect(() => {
+    redirect("/dashboard");
+  }, []);
+  return <div>page</div>;
 }
 
-export default page
+export default page;
