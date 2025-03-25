@@ -34,18 +34,13 @@ export function AppSidebar() {
     },
     {
       title: "Q&A",
-      url: "/ga",
+      url: "/qa",
       icon: Bot,
     },
     {
       title: "Meetings",
       url: "/meetings",
       icon: Presentation,
-    },
-    {
-      title: "Billing",
-      url: "/billing",
-      icon: CreditCard,
     },
   ];
   const pathname = usePathname();

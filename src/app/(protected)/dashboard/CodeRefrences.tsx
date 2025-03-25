@@ -27,8 +27,8 @@ const CodeReferences: React.FC<Props> = ({ files }) => {
           ))}
         </TabsList>
         {files.map((file) => (
-          <TabsContent key={file.fileName} value={file.fileName} className="p-4 overflow-scroll max-h-[50vh] w-full">
-            <SyntaxHighlighter language="typescript" style={oneDark} className="rounded-md flex-wrap w-full">
+          <TabsContent key={file.fileName} value={file.fileName} className="p-4 overflow-auto  h-full w-full">
+            <SyntaxHighlighter language="typescript" style={oneDark} className="rounded-md flex-wrap h-full w-full">
               {file.sourceCode}
             </SyntaxHighlighter>
           </TabsContent>

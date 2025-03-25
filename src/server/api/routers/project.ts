@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure, publicProcedure } from "../trpc";
 import { z } from "zod";
 import { pollCommits } from "@/lib/github";
 import { indexGithubRepo } from "@/lib/github-loader";
+import { Save, User } from "lucide-react";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -63,5 +64,89 @@ export const projectRouter = createTRPCRouter({
         },
       });
       return commits;
+    }),
+    SaveQuestion: protectedProcedure.input(
+      z.object({
+        question: z.string(),
+        answer: z.string(),
+        projectId: z.string(),
+        refrences: z.any(),
+      })).mutation(async ({ ctx, input }) => {
+        const question = await ctx.db.savedQuestions.create({
+          data: {
+            question: input.question,
+            answer: input.answer,
+            projectId: input.projectId,
+            codeRefrences: input.refrences,
+            userId: ctx.user.userId!,
+          },
+        });
+        return question;
+      }),
+      getSavedQuestions: protectedProcedure.input(z.object({
+        projectId: z.string(),
+      })).query(async ({ ctx, input }) => {
+        const questions = await ctx.db.savedQuestions.findMany({
+          where: {
+            projectId: input.projectId,
+
+          },
+          include:{
+            user:true
+          }
+        });
+        return questions;
+      }),
+      uploadMeeting:protectedProcedure.input(z.object({
+        projectId:z.string(),
+        meetingUrl:z.string(),
+        name:z.string()
+      })).mutation(async ({ctx,input})=>{
+        const meeting = await ctx.db.meeting.create({
+          data:{
+            projectId:input.projectId,
+            name:input.name,
+            meetingUrl:input.meetingUrl,
+            status:"PROCESSING"
+          }
+        });
+        return meeting;
+      }
+    ),
+    getMeetings:protectedProcedure.input(z.object({
+      projectId:z.string()
+    })).query(async ({ctx,input})=>{
+      const meetings = await ctx.db.meeting.findMany({
+        where:{
+          projectId:input.projectId
+        },include:{
+          Issue:true
+        }
+      });
+      return meetings;
+    }),
+    deleteMeeting:protectedProcedure.input(z.object({
+      meetingId:z.string()
+    })).mutation(async ({ctx,input})=>{
+      const meeting = await ctx.db.meeting.delete({
+        where:{
+          id:input.meetingId
+        }
+      });
+      return meeting;
+    }),
+    getMeetingById:protectedProcedure.input(z.object({
+      meetingId:z.string()
+    })).query(async ({ctx,input})=>{
+      const meeting = await ctx.db.meeting.findUnique({
+        where:{
+          id:input.meetingId
+        },
+        include:{
+          Issue:true
+        }
+      }
+    );
+      return meeting;
     }),
 });
