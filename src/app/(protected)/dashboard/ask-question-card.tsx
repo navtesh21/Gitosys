@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogHeader,
@@ -35,8 +41,7 @@ function AskQuestionCard({}: Props) {
         <DialogContent className="max-h-[80vh] overflow-scroll sm:max-w-[80vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
-              <Image src="/Keren_7.jpg" alt="logo" width={40} height={40} />3
-            
+              <Image src="/keren_7.jpg" width={40} height={40} alt="logo" />
               <Button
                 type="button"
                 disabled={saveAnswer.isPending || saveAnswer.isSuccess}
@@ -48,7 +53,6 @@ function AskQuestionCard({}: Props) {
                     projectId: project?.id!,
                   });
                   refetch();
-
                 }}
               >
                 {saveAnswer.isSuccess ? "Saved" : "Save Answer"}
@@ -78,9 +82,7 @@ function AskQuestionCard({}: Props) {
       <Card className="relative col-span-3">
         <CardHeader>
           <CardTitle>Ask a Question</CardTitle>
-          <CardDescription>
-             Get answer from Gitosys
-          </CardDescription>
+          <CardDescription>Get answer from Gitosys</CardDescription>
         </CardHeader>
         <CardContent>
           <form

@@ -14,7 +14,7 @@ function CommitLog({}: Props) {
   return (
     <ul className="space-y-6">
       {data?.map((commit, index) => (
-        <li className="relative flex gap-x-4">
+        <li className="relative flex gap-x-4" key={index}>
           <div
             className={`${data.length - 1 === index ? "h-8" : "-bottom-8"} absolute left-0 top-0 flex w-6 justify-center`}
           >

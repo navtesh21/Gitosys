@@ -1,7 +1,5 @@
 "use client";
 import useProject from "@/hooks/use-Project";
-import { getCommits } from "@/lib/github";
-import { useUser } from "@clerk/nextjs";
 import { ExternalLink, Github } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -9,9 +7,17 @@ import CommitLog from "./commit-log";
 import AskQuestionCard from "./ask-question-card";
 import MeetingCard from "./meeting-card";
 import { Button } from "@/components/ui/button";
+import { api } from "@/trpc/react";
+import useRefetch from "@/hooks/use-refetch";
+import { toast } from "sonner";
+import InviteButton from "./invite-button";
 
 function page() {
   const { project } = useProject();
+  const archieve = api.project.archieveProject.useMutation();
+  const refetch = useRefetch();
+  const members = api.project.getTeamMembers.useQuery({
+    projectId: project?.id!})
   return (
     <div className="">
       <div className="flex flex-wrap items-center justify-between gap-y-4">
@@ -30,9 +36,38 @@ function page() {
             </p>
           </div>
         </div>
-        <div className=" flex gap-4">
-          <Button variant={"outline"}>Invite Members</Button>
-          <Button variant={"destructive"}>Archieve</Button>
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2 ">
+           {members.data?.map((member) => (
+                <img
+                  src={member.user.imageUrl || ""}
+                  alt="user avatar"
+                  className="size-8 rounded-full"
+                />
+            ))}
+          </div>
+          <InviteButton />
+          <Button
+            variant={"destructive"}
+            disabled={archieve.isPending}
+            size="sm"
+            onClick={() => {
+              archieve.mutate(
+                { projectId: project?.id! },
+                {
+                  onSuccess: () => {
+                    toast.success("Project archived successfully");
+                    refetch();
+                  },
+                  onError: () => {
+                    toast.error("Failed to archieve project");
+                  },
+                },
+              );
+            }}
+          >
+            Archieve
+          </Button>
         </div>
       </div>
 

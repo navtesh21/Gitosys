@@ -1,32 +1,28 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
-import useProject from "@/hooks/use-Project";
-import {
-  Bot,
-  CreditCard,
-  LayoutDashboard,
-  PlusIcon,
-  Presentation,
-} from "lucide-react";
-import Image from "next/image";
+
+import { useState } from "react";
 import Link from "next/link";
-import { redirect, usePathname } from "next/navigation";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { 
+  LayoutDashboard, 
+  Bot, 
+  Presentation, 
+  PlusIcon, 
+  Menu 
+} from "lucide-react";
+
+import useProject from "@/hooks/use-Project";
 
 export function AppSidebar() {
-  const items = [
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const pathname = usePathname();
+  const { projects, projectId, setProjectId } = useProject();
+
+  const menuItems = [
     {
       title: "Dashboard",
       url: "/dashboard",
@@ -41,75 +37,118 @@ export function AppSidebar() {
       title: "Meetings",
       url: "/meetings",
       icon: Presentation,
-    },
+    }
   ];
-  const pathname = usePathname();
-  const {projects,projectId,setProjectId} = useProject()
 
-  const { open } = useSidebar();
-  return (
-    <Sidebar collapsible="icon" variant="floating">
-      <SidebarHeader />
-      <div className="flex items-center gap-2">
-        <Image src="/keren_7.jpg" width={40} height={40} alt="logo" />
-        {open && <span className="text-xl font-bold">Gitosys</span>}
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center p-4 border-b">
+        <Image 
+          src="/keren_7.jpg" 
+          width={40} 
+          height={40} 
+          alt="logo" 
+          className="rounded-full mr-3" 
+        />
+        <span className="text-xl font-bold">Gitosys</span>
       </div>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <Link
-                      href={item.url}
-                      className={`flex items-center gap-2 ${item.url == pathname ? "bg-primary text-white" : ""} `}
-                    >
-                      <item.icon size={24} />
-                      {item.title}
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Projects</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {projects?.map((item) => (
-                <SidebarMenuItem key={item.id}>
-                  <SidebarMenuButton asChild>
-                    <div className="flex items-center gap-2" onClick={() => setProjectId(item.id)}>
-                      <div
-                        className={`flex size-6 items-center justify-center gap-2 rounded-sm ${item.id == projectId ? "bg-primary text-white" : ""} `}
-                      >
-                        <span>{item.name[0]}</span>
-                      </div>
-                      {item.name}
-                    </div>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
 
-              {open && (
-                <SidebarMenuItem>
-                  <div className="h-2"></div>
-                  <Button className="w-fit" variant="outline" size="sm" onClick={() => {
-                    redirect("/create");
-                  }}>
-                    <PlusIcon size={24} />
-                    Create Project
-                  </Button>
-                </SidebarMenuItem>
-              )}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-      <SidebarFooter />
-    </Sidebar>
+      {/* Application Menu */}
+      <nav className="p-4">
+        <h3 className="text-xs uppercase text-muted-foreground mb-2">
+          Application
+        </h3>
+        <div className="space-y-1">
+          {menuItems.map((item) => (
+            <Link 
+              key={item.url}
+              href={item.url}
+              onClick={() => setIsSheetOpen(false)}
+              className={`flex items-center p-2 rounded-md transition-colors ${
+                pathname === item.url 
+                  ? "bg-primary text-primary-foreground" 
+                  : "hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <item.icon className="mr-2" size={20} />
+              {item.title}
+            </Link>
+          ))}
+        </div>
+      </nav>
+
+      {/* Projects Section */}
+      <nav className="p-4 border-t">
+        <h3 className="text-xs uppercase text-muted-foreground mb-2">
+          Projects
+        </h3>
+        <div className="space-y-1">
+          {projects?.map((project) => (
+            <div 
+              key={project.id}
+              onClick={() => {
+                setProjectId(project.id);
+                setIsSheetOpen(false);
+              }}
+              className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
+                project.id === projectId 
+                  ? "bg-primary text-primary-foreground" 
+                  : "hover:bg-accent hover:text-accent-foreground"
+              }`}
+            >
+              <div className={`w-6 h-6 mr-2 flex items-center justify-center rounded-sm ${
+                project.id === projectId 
+                  ? "bg-primary-foreground text-primary" 
+                  : "bg-muted"
+              }`}>
+                {project.name[0]}
+              </div>
+              {project.name}
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      {/* Create Project Button */}
+      <div className="p-4 mt-auto border-t">
+        <Button 
+          variant="outline" 
+          className="w-full"
+          onClick={() => {
+            window.location.href = "/create";
+            setIsSheetOpen(false);
+          }}
+        >
+          <PlusIcon className="mr-2" size={20} />
+          Create Project
+        </Button>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile Sidebar (Sheet) */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetTrigger asChild>
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="md:hidden fixed top-4 left-4 z-50"
+          >
+            <Menu />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="w-64 p-0">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden md:block w-64 border-r h-screen">
+        <SidebarContent />
+      </div>
+    </>
   );
 }
