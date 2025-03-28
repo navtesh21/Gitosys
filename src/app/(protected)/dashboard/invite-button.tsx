@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import useProject from "@/hooks/use-Project";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 type Props = {};
@@ -16,6 +16,14 @@ type Props = {};
 function InviteButton({}: Props) {
   const { project } = useProject();
   const [open, setOpen] = React.useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && project?.id) {
+      setInviteLink(`${window.location.origin}/invite/${project.id}`);
+    }
+  }, [project?.id]);
+
   return (
     <>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -31,12 +39,12 @@ function InviteButton({}: Props) {
               <Input
                 readOnly
                 onClick={() => {
-                  navigator.clipboard.writeText(
-                    `${window.location.origin}/invite/${project?.id}`,
-                  );
-                  toast.success("Link copied to clipboard");
+                  if (inviteLink) {
+                    navigator.clipboard.writeText(inviteLink);
+                    toast.success("Link copied to clipboard");
+                  }
                 }}
-                value={`${window.location.origin}/invite/${project?.id}`}
+                value={inviteLink}
                 className="w-full cursor-pointer bg-transparent outline-none"
               />
             </div>

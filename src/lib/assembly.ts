@@ -4,11 +4,6 @@ const client = new AssemblyAI({
   apiKey: process.env.ASSEMBLY_KEY!,
 });
 
-const FILE_URL = "https://assembly.ai/sports_injuries.mp3";
-
-const data = {
-  audio: FILE_URL,
-};
 
 function msTOTime(duration: number) {
   const seconds = Math.floor((duration / 1000) % 60);
@@ -35,9 +30,3 @@ export const processMeeting = async (url: string) => {
   return summaries;
 };
 
-const run = async () => {
-  const transcript = await client.transcripts.transcribe(data);
-  console.log(transcript.text);
-};
-
-run();

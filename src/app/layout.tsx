@@ -15,7 +15,7 @@ import { Toaster } from "sonner";
 export const metadata: Metadata = {
   title: "Gitosys",
   description: "Github AI",
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/keren_7.jpg" }],
 };
 
 export default function RootLayout({
