@@ -83,7 +83,7 @@ export function AppSidebar() {
         <h3 className="text-xs uppercase text-muted-foreground mb-2">
           Projects
         </h3>
-        <div className="space-y-1">
+        <div className="space-y-1 overflow-y-auto">
           {projects?.map((project) => (
             <div 
               key={project.id}

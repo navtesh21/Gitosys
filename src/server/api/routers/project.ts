@@ -4,6 +4,7 @@ import { z } from "zod";
 import { pollCommits } from "@/lib/github";
 import { indexGithubRepo } from "@/lib/github-loader";
 import { Save, User } from "lucide-react";
+import { db } from "@/server/db";
 
 export const projectRouter = createTRPCRouter({
   createProject: protectedProcedure
@@ -15,8 +16,9 @@ export const projectRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ ctx, input }) => {
-      try {
-        const project = await ctx.db.project.create({
+      let project;
+      try {      
+        project = await ctx.db.project.create({
           data: {
             name: input.name,
             githubUrl: input.githubUrl,
@@ -27,14 +29,34 @@ export const projectRouter = createTRPCRouter({
             },
           },
         });
-
+      
         await indexGithubRepo(project.id, input.githubUrl, input.githubToken);
         const commit = await pollCommits(project.id);
+      
         return project;
       } catch (error) {
         console.error("Error creating project", error);
+      
+        if (project) {
+          // First, delete related UserToProject records
+          await ctx.db.userToProject.deleteMany({
+            where: {
+              projectId: project.id,
+            },
+          });
+      
+          // Then, delete the project
+          await ctx.db.project.delete({
+            where: {
+              id: project.id,
+            },
+          });
+        }
+      
         throw new Error("Error creating project");
       }
+      
+      
     }),
   getProjects: protectedProcedure.query(async ({ ctx }) => {
     const projects = await ctx.db.project.findMany({
