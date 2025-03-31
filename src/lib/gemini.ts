@@ -8,6 +8,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENROUTER_API_KEY!,
   baseURL: "https://openrouter.ai/api/v1", // OpenRouter's OpenAI-compatible endpoint
 });
+
 export const summarizeCommit = async (diff: string) => {
   const prompt = `
   You are a code assistant summarizing git commit diffs. Your task is to provide a **concise, professional, and to-the-point** summary in **2-3 lines** that:
@@ -38,19 +39,18 @@ export const summarizeCommit = async (diff: string) => {
   `;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1:free",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1, // Lower temperature for more deterministic and concise output
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Adjust model as needed
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const summary = response.text().trim();
 
-    const summary = response.choices?.[0]?.message?.content?.trim();
     return summary || "No summary available";
   } catch (error) {
     console.error("❌ Error summarizing commit:", error);
     return "No summary available";
   }
 };
+
 
 const FREE_MODELS = [
   "deepseek/deepseek-v3-base:free",
@@ -70,70 +70,42 @@ export const getSummary = async (doc: Document) => {
   if (doc.pageContent.length < 50) {
     return "File too small to summarize";
   }
-  
-  // Maximum retry attempts
-  const maxRetries = 3;
-  let attempts = 0;
-  
-  while (attempts < maxRetries) {
-    try {
-      // Get the next model in rotation
-      const model = FREE_MODELS[currentModelIndex];
-      
-      // Update the index for next call (circular rotation)
-      currentModelIndex = (currentModelIndex + 1) % FREE_MODELS.length;
-      
-      const prompt = `You are an intelligent senior software engineer who specializes in onboarding junior software engineers onto projects. 
-      You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file.
+  try {
+    // Fixed string template syntax
+    const prompt = `You are an intelligent senior software engineer who specializes in onboarding junior software engineers onto projects. 
+    You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file.
 
-      Here is the code:
-      ---
-      ${doc.pageContent.slice(0, 10000)}
-      ---`;
+    Here is the code:
+    ---
+    ${doc.pageContent.slice(0, 10000)}
+    ---`;
 
-      console.log(`Attempt ${attempts + 1}: Using model: ${model}`);
-      
-      const response = await openai.chat.completions.create({
-        model: model!,
-        messages: [
-          {
-            role: "user",
-            content: prompt,
-          },
-        ],
-        temperature: 0.1,
-        max_tokens: 500, // Setting a reasonable token limit
-      });
+    const response = await openai.chat.completions.create({
+      model: "deepseek/deepseek-r1:free",
+      messages: [
+        {
+          role: "user",
+          content: prompt, // Use the prompt, not doc.pageContent
+        },
+      ],
+      temperature: 0.1,
+    });
 
-      const content = response.choices?.[0]?.message?.content?.trim();
+    const content = response.choices?.[0]?.message?.content?.trim();
 
-      if (!content) {
-        console.error(`No content in response for model ${model}:`, response);
-        attempts++;
-        // Wait a bit before trying the next model
-        await new Promise(resolve => setTimeout(resolve, 500));
-        continue;
-      }
-
-      console.log(`Success with model: ${model}`);
-      return content;
-      
-    } catch (error) {
-      console.error(`Attempt ${attempts + 1} failed with model ${FREE_MODELS[currentModelIndex - 1 >= 0 ? currentModelIndex - 1 : FREE_MODELS.length - 1]}:`, error);
-      attempts++;
-      
-      // If we've reached max retries, return a fallback
-      if (attempts >= maxRetries) {
-        return "No summary available after trying multiple models. Please try again later.";
-      }
-      
-      // Small delay before trying the next model
-      await new Promise(resolve => setTimeout(resolve, 500));
+    if (!content) {
+      console.error("❌ No valid response received from OpenAI.");
+      return "No summary available";
     }
+
+    console.log(content); // Only log after we have the content
+    return content;
+  } catch (error) {
+    console.error("❌ Error summarizing document:", error);
+    return "No summary available";
   }
-  
-  return "No summary available";
-}
+};
+
 
 export const getEmbeddings = async (summary: string) => {
   try {

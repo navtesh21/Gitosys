@@ -28,7 +28,7 @@ function CreatePage({}: Props) {
       reset();
     } catch (error) {
       console.log("Failed to create project", error);
-      toast.error("Failed to create project");
+      toast.error("Failed to create project,Github api rate limit exceeded");
       reset();
     }
   };

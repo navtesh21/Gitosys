@@ -64,7 +64,7 @@ export const indexGithubRepo = async (
   const docs = await githubLoader({ githubUrl, githubToken });
 
   const first10docs = docs.slice(0, 10);
-  const allEmbeddings = await generateEmbeddings(first10docs);
+  const allEmbeddings = await generateEmbeddings(docs);
   await Promise.all(
     allEmbeddings.map(async (embedding, index) => {
       console.log(
