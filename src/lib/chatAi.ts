@@ -4,11 +4,15 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { getEmbeddings } from "./gemini";
 import { db } from "@/server/db";
+import OpenAI from "openai";
 
 const google = createGoogleGenerativeAI({
   apiKey: process.env.GEMINI_API_KEY,
 });
-
+const openai = new OpenAI({
+  baseURL: "https://api.novita.ai/v3/openai",
+  apiKey: process.env.NOVITA_API_KEY as string,
+});
 export async function askQuestion(question: string, projectId: string) {
   const queryVector = await getEmbeddings(question);
   const vectorQuery = `[${queryVector.join(",")}]`;
@@ -55,10 +59,23 @@ AI assistant will not apologize for previous responses, but instead will indicat
 AI assistant will not invent anything that is not drawn directly from the context.
 Answer in markdown syntax, with code snippets if needed. Be as detailed as possible when answering.
 `;
-  const { text } = await generateText({
-    model: google("gemini-1.5-pro-latest"),
-    prompt: prompt,
-  });
+ const response = await openai.chat.completions.create({
+      model: "google/gemma-3-27b-it",
+      messages: [
+        {
+          role: "user",
+          content: prompt, // Use the prompt, not doc.pageContent
+        },
+      ],
+      temperature: 0.1,
+    });
+
+    const text = response.choices?.[0]?.message?.content?.trim();
+    if (!text) {
+      console.error("❌ No valid response received from OpenAI.");
+      return "No summary available";
+    }
+    console.log(text); // Only log after we have the content
   return {
     text,
     result,

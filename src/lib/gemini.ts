@@ -5,8 +5,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY!,
-  baseURL: "https://openrouter.ai/api/v1", // OpenRouter's OpenAI-compatible endpoint
+  baseURL: "https://api.novita.ai/v3/openai",
+  apiKey: process.env.NOVITA_API_KEY as string,
 });
 
 export const summarizeCommit = async (diff: string) => {
@@ -81,7 +81,7 @@ export const getSummary = async (doc: Document) => {
     ---`;
 
     const response = await openai.chat.completions.create({
-      model: "deepseek/deepseek-r1:free",
+      model: "google/gemma-3-27b-it",
       messages: [
         {
           role: "user",
