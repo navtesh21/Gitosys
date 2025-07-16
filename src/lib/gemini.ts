@@ -1,6 +1,7 @@
 import { Document } from "@langchain/core/documents";
 import OpenAI from "openai";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import pLimit from 'p-limit';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
@@ -52,60 +53,81 @@ export const summarizeCommit = async (diff: string) => {
 };
 
 
-const FREE_MODELS = [
-  "deepseek/deepseek-v3-base:free",
-  "allenai/molmo-7b-d:free",
-  "bytedance-research/ui-tars-72b:free",
-  "qwen/qwen2.5-vl-3b-instruct:free",
-  "google/gemini-2.5-pro-exp-03-25:free",
-  "qwen/qwen2.5-vl-32b-instruct:free",
-  "deepseek/deepseek-chat-v3-0324:free",
-  "featherless/qwerky-72b:free"
-];
 
-// Keep track of which model was last used
-let currentModelIndex = 0;
+const limit = pLimit(5);
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to check if file should be skipped
+const shouldSkipFile = (filename: string): boolean => {
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp', '.bmp'];
+  const otherSkipExtensions = ['.pdf', '.zip', '.tar', '.gz', '.mp4', '.mp3', '.wav'];
+  
+  const extension = filename.toLowerCase().split('.').pop();
+  return imageExtensions.includes(`.${extension}`) || otherSkipExtensions.includes(`.${extension}`);
+};
 
 export const getSummary = async (doc: Document) => {
+  const filename = doc.metadata.source || '';
+  
+  // Skip image files and other non-code files
+  if (shouldSkipFile(filename)) {
+    console.log(`⏭️  Skipping ${filename} (image/binary file)`);
+    return `Skipped: ${filename} is an image or binary file`;
+  }
+  
   if (doc.pageContent.length < 50) {
     return "File too small to summarize";
   }
-  try {
-    // Fixed string template syntax
-    const prompt = `You are an intelligent senior software engineer who specializes in onboarding junior software engineers onto projects. 
-    You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file.
 
-    Here is the code:
-    ---
-    ${doc.pageContent.slice(0, 10000)}
-    ---`;
+  // Use p-limit to queue and control the API requests (3 concurrent)
+  return limit(async () => {
+    try {
+      const prompt = `You are an intelligent senior software engineer who specializes in onboarding junior software engineers onto projects. 
+      You are onboarding a junior software engineer and explaining to them the purpose of the ${doc.metadata.source} file.
 
-    const response = await openai.chat.completions.create({
-      model: "google/gemma-3-27b-it",
-      messages: [
-        {
-          role: "user",
-          content: prompt, // Use the prompt, not doc.pageContent
-        },
-      ],
-      temperature: 0.1,
-    });
+      Here is the code:
+      ---
+      ${doc.pageContent.slice(0, 10000)}
+      ---`;
 
-    const content = response.choices?.[0]?.message?.content?.trim();
+      const response = await openai.chat.completions.create({
+        model: "google/gemma-3-27b-it",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.1,
+      });
 
-    if (!content) {
-      console.error("❌ No valid response received from OpenAI.");
+      const content = response.choices?.[0]?.message?.content?.trim();
+
+      if (!content) {
+        console.error("❌ No valid response received from OpenAI.");
+        return "No summary available";
+      }
+
+      console.log(`✅ Summary generated for: ${doc.metadata.source}`);
+      
+      
+      
+      return content;
+    } catch (error:any) {
+      console.error(`❌ Error summarizing ${doc.metadata.source}:`, error);
+      
+      if (error.status === 429) {
+        // Wait longer on rate limit
+        console.log(`⏳ Rate limited on ${doc.metadata.source}, waiting 3 seconds...`);
+        await sleep(3000);
+        return "Rate limit exceeded. Please try again later.";
+      }
+      
       return "No summary available";
     }
-
-    console.log(content); // Only log after we have the content
-    return content;
-  } catch (error) {
-    console.error("❌ Error summarizing document:", error);
-    return "No summary available";
-  }
+  });
 };
-
 
 export const getEmbeddings = async (summary: string) => {
   try {

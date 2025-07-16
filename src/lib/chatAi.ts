@@ -1,4 +1,4 @@
-"use server"
+"use server";
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { generateText } from "ai";
@@ -14,7 +14,14 @@ const openai = new OpenAI({
   apiKey: process.env.NOVITA_API_KEY as string,
 });
 export async function askQuestion(question: string, projectId: string) {
+  console.log(
+    "[askQuestion] Received question:",
+    question,
+    "for project:",
+    projectId,
+  );
   const queryVector = await getEmbeddings(question);
+  console.log("[askQuestion] Query vector:", queryVector);
   const vectorQuery = `[${queryVector.join(",")}]`;
 
   const result = (await db.$queryRaw`
@@ -29,12 +36,17 @@ export async function askQuestion(question: string, projectId: string) {
     sourceCode: string;
     summary: string;
   }[];
+  console.log("[askQuestion] DB result count:", result.length);
 
   let context = "";
-
   for (const { fileName, sourceCode, summary } of result) {
     context += `File: ${fileName}\nCode: ${sourceCode}\nSummary: ${summary}\n\n`;
   }
+  console.log(
+    "[askQuestion] Context block generated:",
+    context.length,
+    "characters",
+  );
 
   const prompt = `You are an AI code assistant who answers questions about the codebase. Your target audience is a technical intern working on the project.
 
@@ -59,23 +71,24 @@ AI assistant will not apologize for previous responses, but instead will indicat
 AI assistant will not invent anything that is not drawn directly from the context.
 Answer in markdown syntax, with code snippets if needed. Be as detailed as possible when answering.
 `;
- const response = await openai.chat.completions.create({
-      model: "google/gemma-3-27b-it",
-      messages: [
-        {
-          role: "user",
-          content: prompt, // Use the prompt, not doc.pageContent
-        },
-      ],
-      temperature: 0.1,
-    });
+  console.log("[askQuestion] Prompt generated:", prompt.length, "characters");
+  const response = await openai.chat.completions.create({
+    model: "google/gemma-3-27b-it",
+    messages: [
+      {
+        role: "user",
+        content: prompt, // Use the prompt, not doc.pageContent
+      },
+    ],
+    temperature: 0.1,
+  });
 
-    const text = response.choices?.[0]?.message?.content?.trim();
-    if (!text) {
-      console.error("❌ No valid response received from OpenAI.");
-      return "No summary available";
-    }
-    console.log(text); // Only log after we have the content
+  const text = response.choices?.[0]?.message?.content?.trim();
+  if (!text) {
+    console.error("❌ No valid response received from OpenAI.");
+    return "No summary available";
+  }
+  console.log("[askQuestion] OpenAI response:", text);
   return {
     text,
     result,
